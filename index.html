@@ -549,27 +549,34 @@
 
         // CONTROL DE ACCESO ADMIN POR URL (?rol=admin) O TECLADO
         function checkAdminRoleOrShortcut() {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('rol') === 'admin') {
-                document.getElementById('adminNavBtn').classList.remove('hidden');
-                document.getElementById('adminNavBtn').classList.add('flex');
-            }
+    const params = new URLSearchParams(window.location.search);
+    const adminBtn = document.getElementById('adminNavBtn');
 
-            window.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
-                    e.preventDefault();
-                    const btn = document.getElementById('adminNavBtn');
-                    const isHidden = btn.classList.contains('hidden');
-                    if (isHidden) {
-                        btn.classList.remove('hidden');
-                        btn.classList.add('flex');
-                        alert("¡Panel de administración desbloqueado!");
-                    } else {
-                        toggleAdminModal();
-                    }
-                }
-            });
+    if (params.get('rol') === 'admin') {
+        // Muestra el panel admin solo si la URL tiene ?rol=admin
+        adminBtn.classList.remove('hidden');
+        adminBtn.classList.add('flex');
+    } else {
+        // Oculta obligatoriamente el panel admin para clientes normales
+        adminBtn.classList.add('hidden');
+        adminBtn.classList.remove('flex');
+    }
+
+    // Atajo de teclado de emergencia (Ctrl + Shift + A)
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
+            e.preventDefault();
+            const isHidden = adminBtn.classList.contains('hidden');
+            if (isHidden) {
+                adminBtn.classList.remove('hidden');
+                adminBtn.classList.add('flex');
+                alert("¡Panel de administración desbloqueado temporalmente!");
+            } else {
+                toggleAdminModal();
+            }
         }
+    });
+}
 
         function saveDataLocal() {
             localStorage.setItem('mt_config', JSON.stringify(config));
