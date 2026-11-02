@@ -52,15 +52,16 @@
 
                 <!-- ACCIONES HEADER -->
                 <div class="flex items-center gap-3">
-                    <!-- BOTÓN ADMIN -->
-                    <button onclick="toggleAdminModal()" class="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition flex items-center gap-2 text-sm font-medium">
+                    <!-- BOTÓN ADMIN (OCULTO POR DEFECTO - SE ACTIVA CON ?rol=admin o Ctrl+Shift+A) -->
+                    <button id="adminNavBtn" onclick="toggleAdminModal()" class="hidden px-3 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition items-center gap-2 text-sm font-medium">
                         <i data-lucide="settings" class="w-4 h-4 text-slate-500"></i>
                         <span class="hidden sm:inline">Panel Admin</span>
                     </button>
 
-                    <!-- BOTÓN CARRITO -->
-                    <button onclick="toggleCartDrawer()" class="relative p-2.5 rounded-lg bg-[#1b4d3e] text-white hover:bg-[#14532d] transition flex items-center justify-center shadow-sm">
-                        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                    <!-- BOTÓN MI CARRITO -->
+                    <button onclick="toggleCartDrawer()" class="relative px-4 py-2.5 rounded-xl bg-[#1b4d3e] text-white hover:bg-[#14532d] transition flex items-center gap-2 shadow-sm font-semibold text-sm">
+                        <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                        <span>Mi Carrito</span>
                         <span id="cartCountBadge" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white hidden">0</span>
                     </button>
                 </div>
@@ -145,22 +146,22 @@
         </div>
     </footer>
 
-    <!-- MODAL DETALLE DE PRODUCTO (GALERÍA DE FOTOS) -->
+    <!-- MODAL DETALLE DE PRODUCTO (GALERÍA DE HASTA 5 FOTOS) -->
     <div id="productModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl relative flex flex-col md:flex-row max-h-[90vh]">
             <button onclick="closeProductModal()" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
-            <!-- GALERÍA -->
+            <!-- GALERÍA DE FOTOS (HASTA 5 MINIATURAS) -->
             <div class="md:w-1/2 p-4 bg-slate-50 flex flex-col justify-between">
                 <div class="aspect-square bg-white rounded-xl overflow-hidden shadow-sm mb-3">
-                    <img id="modalMainImg" src="" alt="" class="w-full h-full object-cover">
+                    <img id="modalMainImg" src="" alt="" class="w-full h-full object-cover transition duration-200">
                 </div>
-                <div id="modalThumbnails" class="flex gap-2 overflow-x-auto pb-1">
-                    <!-- Miniaturas -->
+                <div id="modalThumbnails" class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                    <!-- Miniaturas inyectadas dinámicamente -->
                 </div>
             </div>
-            <!-- DETALLES -->
+            <!-- DETALLES DEL PRODUCTO -->
             <div class="md:w-1/2 p-6 flex flex-col justify-between">
                 <div class="space-y-3">
                     <span id="modalCategory" class="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700">Categoría</span>
@@ -456,8 +457,9 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">URLs de Imágenes (Hasta 5 URLs separadas por coma)</label>
-                            <input type="text" id="prodImages" placeholder="https://imagen1.jpg, https://imagen2.jpg" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">URLs de Imágenes (Hasta 5 fotos separadas por coma `,`)</label>
+                            <input type="text" id="prodImages" placeholder="https://foto1.jpg, https://foto2.jpg" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                            <p class="text-[11px] text-slate-400 mt-1">La primera URL será la imagen de portada. Hasta 5 enlaces.</p>
                         </div>
 
                         <div class="flex gap-2 justify-end">
@@ -490,9 +492,8 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <!-- JAVASCRIPT APPLICATION LOGIC CONECTADO A LA NUBE -->
     <script>
-        // ESTADO GLOBAL CON PERSISTENCIA LOCALSTORAGE
         const DEFAULT_CONFIG = {
             storeName: 'MiTienda Digital',
             legalName: 'MiTienda SAS',
@@ -509,69 +510,77 @@
 
         const DEFAULT_CATEGORIES = ['Todas', 'Calzado', 'Moda', 'Tecnología', 'Accesorios'];
 
-        const DEFAULT_PRODUCTS = [
-            {
-                id: '1',
-                title: 'Sneakers Urban Pro',
-                price: 180000,
-                promoPrice: 149900,
-                category: 'Calzado',
-                status: 'Disponible',
-                description: 'Tenis de diseño urbano con máxima amortiguación y suela antideslizante.',
-                images: ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600', 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600']
-            },
-            {
-                id: '2',
-                title: 'Reloj Inteligente Fit v2',
-                price: 120000,
-                promoPrice: 99900,
-                category: 'Tecnología',
-                status: 'Disponible',
-                description: 'Smartwatch con monitor de ritmo cardíaco, notificaciones y batería de 7 días.',
-                images: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600']
-            },
-            {
-                id: '3',
-                title: 'Chaqueta Impermeable Explorer',
-                price: 210000,
-                promoPrice: 0,
-                category: 'Moda',
-                status: 'Agotado',
-                description: 'Chaqueta ligera cortavientos ideal para clima frío o excursiones.',
-                images: ['https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600']
-            }
-        ];
-
         let config = JSON.parse(localStorage.getItem('mt_config')) || DEFAULT_CONFIG;
         let categories = JSON.parse(localStorage.getItem('mt_categories')) || DEFAULT_CATEGORIES;
-        let products = JSON.parse(localStorage.getItem('mt_products')) || DEFAULT_PRODUCTS;
+        let products = []; // Se cargará dinámicamente desde la nube
         let cart = JSON.parse(localStorage.getItem('mt_cart')) || [];
         let selectedCategory = 'Todas';
 
         // INICIALIZACIÓN APP
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('yearSpan').textContent = new Date().getFullYear();
             updateStoreInfoUI();
             renderCategoryFilters();
-            renderStoreProducts();
+            checkAdminRoleOrShortcut();
+            
+            // Cargar productos desde la base de datos en la nube (Vercel KV)
+            await cargarProductosDesdeNube();
+            
             renderCartUI();
             lucide.createIcons();
         });
 
-        // PERSISTENCIA
-        function saveData() {
+        // CARGAR PRODUCTOS DESDE LA API DE VERCEL
+        async function cargarProductosDesdeNube() {
+            try {
+                const response = await fetch('/api/productos');
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    products = data;
+                    renderStoreProducts();
+                    if(!document.getElementById('adminModal').classList.contains('hidden')) {
+                        renderAdminProducts();
+                    }
+                }
+            } catch (error) {
+                console.error("Error al sincronizar con la nube:", error);
+            }
+        }
+
+        // CONTROL DE ACCESO ADMIN POR URL (?rol=admin) O TECLADO
+        function checkAdminRoleOrShortcut() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('rol') === 'admin') {
+                document.getElementById('adminNavBtn').classList.remove('hidden');
+                document.getElementById('adminNavBtn').classList.add('flex');
+            }
+
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
+                    e.preventDefault();
+                    const btn = document.getElementById('adminNavBtn');
+                    const isHidden = btn.classList.contains('hidden');
+                    if (isHidden) {
+                        btn.classList.remove('hidden');
+                        btn.classList.add('flex');
+                        alert("¡Panel de administración desbloqueado!");
+                    } else {
+                        toggleAdminModal();
+                    }
+                }
+            });
+        }
+
+        function saveDataLocal() {
             localStorage.setItem('mt_config', JSON.stringify(config));
             localStorage.setItem('mt_categories', JSON.stringify(categories));
-            localStorage.setItem('mt_products', JSON.stringify(products));
             localStorage.setItem('mt_cart', JSON.stringify(cart));
         }
 
-        // FORMATEADOR MONEDA COP
         function formatCOP(amount) {
             return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
         }
 
-        // ACTUALIZACIÓN DE INTERFAZ DE TIENDA CON DATOS EMPRESA
         function updateStoreInfoUI() {
             document.querySelectorAll('.store-name-text').forEach(el => el.textContent = config.storeName);
             document.getElementById('footerAddress').textContent = config.address;
@@ -589,7 +598,6 @@
             lucide.createIcons();
         }
 
-        // CATÁLOGO & FILTROS
         function renderCategoryFilters() {
             const container = document.getElementById('categoryFilters');
             container.innerHTML = categories.map(cat => `
@@ -611,8 +619,8 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
 
             const filtered = products.filter(p => {
-                const matchesCat = selectedCategory === 'Todas' || p.category === selectedCategory;
-                const matchesSearch = p.title.toLowerCase().includes(search) || p.description.toLowerCase().includes(search);
+                const matchesCat = selectedCategory === 'Todas' || p.categoria === selectedCategory;
+                const matchesSearch = p.nombre.toLowerCase().includes(search) || p.descripcion.toLowerCase().includes(search);
                 return matchesCat && matchesSearch;
             });
 
@@ -624,31 +632,31 @@
 
             emptyState.classList.add('hidden');
             grid.innerHTML = filtered.map(p => {
-                const isPromo = p.promoPrice && p.promoPrice > 0;
-                const finalPrice = isPromo ? p.promoPrice : p.price;
-                const isOutOfStock = p.status === 'Agotado';
-                const mainImg = p.images && p.images.length > 0 ? p.images[0] : 'https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen';
+                const isPromo = p.precioOferta && p.precioOferta > 0;
+                const finalPrice = isPromo ? p.precioOferta : p.precio;
+                const isOutOfStock = p.estado === 'Agotado';
+                const mainImg = p.imagenes && p.imagenes.length > 0 ? p.imagenes[0] : 'https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen';
 
                 return `
                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden relative group">
                         ${isPromo ? `<span class="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full z-10">OFERTA</span>` : ''}
                         
                         <div class="aspect-square bg-slate-50 overflow-hidden cursor-pointer relative" onclick="openProductModal('${p.id}')">
-                            <img src="${mainImg}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <img src="${mainImg}" alt="${p.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                             ${isOutOfStock ? `<div class="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center text-white font-bold text-sm tracking-wider uppercase">AGOTADO</div>` : ''}
                         </div>
 
                         <div class="p-4 flex flex-col flex-grow justify-between space-y-3">
                             <div>
-                                <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">${p.category}</span>
-                                <h3 class="font-bold text-slate-800 text-sm mt-1 cursor-pointer hover:text-[#1b4d3e]" onclick="openProductModal('${p.id}')">${p.title}</h3>
-                                <p class="text-xs text-slate-500 line-clamp-2 mt-1">${p.description}</p>
+                                <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">${p.categoria}</span>
+                                <h3 class="font-bold text-slate-800 text-sm mt-1 cursor-pointer hover:text-[#1b4d3e]" onclick="openProductModal('${p.id}')">${p.nombre}</h3>
+                                <p class="text-xs text-slate-500 line-clamp-2 mt-1">${p.descripcion}</p>
                             </div>
 
                             <div class="pt-2 border-t border-slate-50 flex items-center justify-between">
                                 <div>
                                     <span class="text-base font-extrabold text-[#1b4d3e]">${formatCOP(finalPrice)}</span>
-                                    ${isPromo ? `<span class="block text-[11px] text-slate-400 line-through">${formatCOP(p.price)}</span>` : ''}
+                                    ${isPromo ? `<span class="block text-[11px] text-slate-400 line-through">${formatCOP(p.precio)}</span>` : ''}
                                 </div>
                                 
                                 <button 
@@ -665,33 +673,34 @@
             lucide.createIcons();
         }
 
-        // DETALLE PRODUCTO MODAL
         function openProductModal(id) {
             const p = products.find(prod => prod.id === id);
             if (!p) return;
 
-            const isPromo = p.promoPrice && p.promoPrice > 0;
-            const finalPrice = isPromo ? p.promoPrice : p.price;
-            const isOutOfStock = p.status === 'Agotado';
+            const isPromo = p.precioOferta && p.precioOferta > 0;
+            const finalPrice = isPromo ? p.precioOferta : p.precio;
+            const isOutOfStock = p.estado === 'Agotado';
 
-            document.getElementById('modalTitle').textContent = p.title;
-            document.getElementById('modalCategory').textContent = p.category;
-            document.getElementById('modalDescription').textContent = p.description;
+            document.getElementById('modalTitle').textContent = p.nombre;
+            document.getElementById('modalCategory').textContent = p.categoria;
+            document.getElementById('modalDescription').textContent = p.descripcion;
             document.getElementById('modalPrice').textContent = formatCOP(finalPrice);
-            document.getElementById('modalOldPrice').textContent = isPromo ? formatCOP(p.price) : '';
+            document.getElementById('modalOldPrice').textContent = isPromo ? formatCOP(p.precio) : '';
             document.getElementById('modalOldPrice').style.display = isPromo ? 'inline' : 'none';
 
             const badge = document.getElementById('modalStockBadge');
-            badge.textContent = p.status;
+            badge.textContent = p.estado;
             badge.className = `inline-block text-xs font-medium px-2 py-1 rounded ${isOutOfStock ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`;
 
             const mainImg = document.getElementById('modalMainImg');
-            const images = p.images && p.images.length > 0 ? p.images : ['https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen'];
+            const rawImages = p.imagenes && p.imagenes.length > 0 ? p.imagenes : ['https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen'];
+            const images = rawImages.slice(0, 5);
+
             mainImg.src = images[0];
 
             const thumbsContainer = document.getElementById('modalThumbnails');
-            thumbsContainer.innerHTML = images.map(img => `
-                <img src="${img}" onclick="document.getElementById('modalMainImg').src='${img}'" class="w-12 h-12 rounded-lg object-cover cursor-pointer border hover:border-[#1b4d3e]">
+            thumbsContainer.innerHTML = images.map((img) => `
+                <img src="${img}" onclick="document.getElementById('modalMainImg').src='${img}'" class="w-12 h-12 rounded-lg object-cover cursor-pointer border-2 border-slate-200 hover:border-[#1b4d3e] transition">
             `).join('');
 
             const addBtn = document.getElementById('modalAddBtn');
@@ -713,25 +722,24 @@
             document.getElementById('productModal').classList.add('hidden');
         }
 
-        // LOGICA DEL CARRITO
         function addToCart(id) {
             const p = products.find(item => item.id === id);
-            if (!p || p.status === 'Agotado') return;
+            if (!p || p.estado === 'Agotado') return;
 
             const existing = cart.find(item => item.id === id);
             if (existing) {
                 existing.qty += 1;
             } else {
-                const isPromo = p.promoPrice && p.promoPrice > 0;
+                const isPromo = p.precioOferta && p.precioOferta > 0;
                 cart.push({
                     id: p.id,
-                    title: p.title,
-                    price: isPromo ? p.promoPrice : p.price,
-                    image: p.images && p.images.length > 0 ? p.images[0] : '',
+                    title: p.nombre,
+                    price: isPromo ? p.precioOferta : p.precio,
+                    image: p.imagenes && p.imagenes.length > 0 ? p.imagenes[0] : '',
                     qty: 1
                 });
             }
-            saveData();
+            saveDataLocal();
             renderCartUI();
             toggleCartDrawer(true);
         }
@@ -743,13 +751,13 @@
             if (item.qty <= 0) {
                 cart = cart.filter(i => i.id !== id);
             }
-            saveData();
+            saveDataLocal();
             renderCartUI();
         }
 
         function removeFromCart(id) {
             cart = cart.filter(i => i.id !== id);
-            saveData();
+            saveDataLocal();
             renderCartUI();
         }
 
@@ -813,7 +821,6 @@
             }
         }
 
-        // PROCESO DE PAGO & CHECKOUT
         function openCheckoutModal() {
             if (cart.length === 0) return;
             toggleCartDrawer(false);
@@ -858,23 +865,20 @@
 
             const waUrl = `https://wa.me/${config.whatsapp}?text=${encodeURIComponent(summary)}`;
             
-            // Limpiar Carrito y cerrar
             cart = [];
-            saveData();
+            saveDataLocal();
             renderCartUI();
             closeCheckoutModal();
-
-            // Abrir WhatsApp
             window.open(waUrl, '_blank');
         }
 
-        // PANEL DE ADMINISTRACIÓN (TABS & MODAL)
         function toggleAdminModal() {
             const modal = document.getElementById('adminModal');
             const isHidden = modal.classList.contains('hidden');
             if (isHidden) {
                 loadAdminFormData();
                 modal.classList.remove('hidden');
+                renderAdminProducts();
             } else {
                 modal.classList.add('hidden');
             }
@@ -922,12 +926,11 @@
                 facebook: document.getElementById('cfgFb').value,
                 tiktok: document.getElementById('cfgTt').value,
             };
-            saveData();
+            saveDataLocal();
             updateStoreInfoUI();
             alert('Configuración guardada exitosamente.');
         }
 
-        // ADMIN CATEGORÍAS
         function renderAdminCategories() {
             const tbody = document.getElementById('categoriesTableBody');
             tbody.innerHTML = categories.filter(c => c !== 'Todas').map(c => `
@@ -945,7 +948,7 @@
             const val = document.getElementById('catNameInput').value.trim();
             if (val && !categories.includes(val)) {
                 categories.push(val);
-                saveData();
+                saveDataLocal();
                 renderCategoryFilters();
                 renderAdminCategories();
                 document.getElementById('catNameInput').value = '';
@@ -954,28 +957,27 @@
 
         function deleteCategory(catName) {
             categories = categories.filter(c => c !== catName);
-            saveData();
+            saveDataLocal();
             renderCategoryFilters();
             renderAdminCategories();
         }
 
-        // ADMIN PRODUCTOS
         function renderAdminProducts() {
             const tbody = document.getElementById('productsTableBody');
             tbody.innerHTML = products.map(p => `
                 <tr>
                     <td class="p-3">
-                        <img src="${p.images[0] || 'https://placehold.co/50'}" class="w-10 h-10 rounded-lg object-cover">
+                        <img src="${p.imagenes && p.imagenes[0] ? p.imagenes[0] : 'https://placehold.co/50'}" class="w-10 h-10 rounded-lg object-cover">
                     </td>
-                    <td class="p-3 font-semibold text-slate-800">${p.title}</td>
-                    <td class="p-3 text-xs text-slate-600">${p.category}</td>
-                    <td class="p-3 font-bold text-xs">${formatCOP(p.promoPrice > 0 ? p.promoPrice : p.price)}</td>
+                    <td class="p-3 font-semibold text-slate-800">${p.nombre}</td>
+                    <td class="p-3 text-xs text-slate-600">${p.categoria}</td>
+                    <td class="p-3 font-bold text-xs">${formatCOP(p.precioOferta > 0 ? p.precioOferta : p.precio)}</td>
                     <td class="p-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'Disponible' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${p.status}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.estado === 'Disponible' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${p.estado}</span>
                     </td>
                     <td class="p-3 text-right space-x-2">
                         <button onclick="editProduct('${p.id}')" class="text-blue-600 hover:underline text-xs">Editar</button>
-                        <button onclick="deleteProduct('${p.id}')" class="text-red-600 hover:underline text-xs">Eliminar</button>
+                        <button onclick="deleteProductCloud('${p.id}')" class="text-red-600 hover:underline text-xs">Eliminar</button>
                     </td>
                 </tr>
             `).join('');
@@ -1003,52 +1005,71 @@
             if (!p) return;
             openProductForm();
             document.getElementById('prodEditId').value = p.id;
-            document.getElementById('prodName').value = p.title;
-            document.getElementById('prodPrice').value = p.price;
-            document.getElementById('prodPromoPrice').value = p.promoPrice || '';
-            document.getElementById('prodStatus').value = p.status;
-            document.getElementById('prodDesc').value = p.description;
-            document.getElementById('prodImages').value = p.images ? p.images.join(', ') : '';
-            document.getElementById('prodCategory').value = p.category;
+            document.getElementById('prodName').value = p.nombre;
+            document.getElementById('prodPrice').value = p.precio;
+            document.getElementById('prodPromoPrice').value = p.precioOferta || '';
+            document.getElementById('prodStatus').value = p.estado;
+            document.getElementById('prodDesc').value = p.descripcion;
+            document.getElementById('prodImages').value = p.imagenes ? p.imagenes.slice(0, 5).join(', ') : '';
+            document.getElementById('prodCategory').value = p.categoria;
         }
 
-        function saveProduct(e) {
+        // GUARDAR PRODUCTO EN LA NUBE (PETICIÓN POST A LA API)
+        async function saveProduct(e) {
             e.preventDefault();
-            const id = document.getElementById('prodEditId').value;
-            const title = document.getElementById('prodName').value;
-            const price = parseFloat(document.getElementById('prodPrice').value);
-            const promoPrice = parseFloat(document.getElementById('prodPromoPrice').value) || 0;
-            const category = document.getElementById('prodCategory').value;
-            const status = document.getElementById('prodStatus').value;
-            const description = document.getElementById('prodDesc').value;
+            const id = document.getElementById('prodEditId').value || Date.now().toString();
+            const nombre = document.getElementById('prodName').value;
+            const precio = parseFloat(document.getElementById('prodPrice').value);
+            const precioOferta = parseFloat(document.getElementById('prodPromoPrice').value) || 0;
+            const categoria = document.getElementById('prodCategory').value;
+            const estado = document.getElementById('prodStatus').value;
+            const descripcion = document.getElementById('prodDesc').value;
             const rawImages = document.getElementById('prodImages').value;
-            const images = rawImages ? rawImages.split(',').map(s => s.trim()).filter(Boolean) : ['https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=600'];
+            
+            const imagenes = rawImages 
+                ? rawImages.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5) 
+                : ['https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=600'];
 
-            if (id) {
-                // Editar
-                const idx = products.findIndex(p => p.id === id);
-                if (idx !== -1) {
-                    products[idx] = { id, title, price, promoPrice, category, status, description, images };
-                }
-            } else {
-                // Crear
-                products.push({
-                    id: Date.now().toString(),
-                    title, price, promoPrice, category, status, description, images
+            const productoObj = { id, nombre, precio, precioOferta, categoria, estado, descripcion, imagenes };
+
+            try {
+                const response = await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productoObj)
                 });
+                const res = await response.json();
+                if(res.success) {
+                    closeProductForm();
+                    await cargarProductosDesdeNube();
+                    renderAdminProducts();
+                    alert("¡Producto guardado correctamente en la nube!");
+                }
+            } catch (err) {
+                console.error("Error al guardar producto:", err);
+                alert("Hubo un error al guardar el producto.");
             }
-
-            saveData();
-            closeProductForm();
-            renderAdminProducts();
-            renderStoreProducts();
         }
 
-        function deleteProduct(id) {
+        async function deleteProductCloud(id) {
+            if(!confirm("¿Estás seguro de eliminar este producto?")) return;
+            
+            // Filtramos localmente y actualizamos mandando la nueva lista a la API
             products = products.filter(p => p.id !== id);
-            saveData();
-            renderAdminProducts();
-            renderStoreProducts();
+            
+            try {
+                // Sobrescribimos enviando todos los productos restantes mediante POST
+                // (O puedes agregar un método DELETE en tu api/productos.js si lo deseas)
+                const response = await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id: id })
+                });
+                await cargarProductosDesdeNube();
+                renderAdminProducts();
+            } catch(e) {
+                console.error("Error al eliminar", e);
+            }
         }
     </script>
 </body>
