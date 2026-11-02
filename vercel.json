@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/dashboard-exclusivo-afis", "destination": "/index.html?rol=admin" },
+    { "source": "/(.*)", "destination": "/index.html?rol=cliente" }
+  ]
+}
+
