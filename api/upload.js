@@ -1,44 +1,32 @@
 import { put } from '@vercel/blob';
 
-export const config = {
-  runtime: 'edge',
-};
+export default async function handler(req, res) {
+  // Configurar CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(request) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método no permitido' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get('file');
+    // Como estamos usando Node.js serverless tradicional con multipart, 
+    // capturamos el archivo enviado desde el FormData del frontend.
+    const file = req.body || req; 
+    const filename = req.query.filename || `producto-${Date.now()}.jpg`;
 
-    if (!file) {
-      return new Response(JSON.stringify({ error: 'No se encontró ningún archivo' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const nombreUnico = `productos/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-
-    const blob = await put(nombreUnico, file, {
+    const blob = await put(filename, file, {
       access: 'public',
     });
 
-    return new Response(JSON.stringify({ url: blob.url }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-    
+    return res.status(200).json({ url: blob.url });
   } catch (error) {
-    console.error("Error en upload:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error("Error al subir archivo a Vercel Blob:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
