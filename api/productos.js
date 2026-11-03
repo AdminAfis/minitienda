@@ -20,7 +20,7 @@ export default async function handler(request) {
             precioOferta: 149900,
             estado: "Disponible",
             descripcion: "Tenis de diseño urbano con máxima amortiguación y suela antideslizante.",
-            imagen: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600"
+            imagenes: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600", "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600"]
           },
           {
             id: "2",
@@ -30,7 +30,7 @@ export default async function handler(request) {
             categoria: "Tecnología",
             estado: "Disponible",
             descripcion: "Smartwatch con monitor de ritmo cardíaco, notificaciones y batería de 7 días.",
-            imagen: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600"
+            imagenes: ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600"]
           },
           {
             id: "3",
@@ -40,7 +40,7 @@ export default async function handler(request) {
             categoria: "Moda",
             estado: "Agotado",
             descripcion: "Chaqueta ligera cortavientos ideal para clima frío o excursiones.",
-            imagen: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600"
+            imagenes: ["https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600"]
           }
         ];
         await kv.set('listado_productos', productos);
@@ -56,12 +56,14 @@ export default async function handler(request) {
       const body = await request.json();
       let productosActuales = await kv.get('listado_productos') || [];
 
+      // Manejo de eliminación
       if (body.action === 'delete') {
         productosActuales = productosActuales.filter(p => p.id !== body.id);
         await kv.set('listado_productos', productosActuales);
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
 
+      // Guardar o actualizar producto por ID
       const index = productosActuales.findIndex(p => p.id === body.id);
       if (index >= 0) {
         productosActuales[index] = body;
