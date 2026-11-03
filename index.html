@@ -456,10 +456,12 @@
                             <textarea id="prodDesc" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></textarea>
                         </div>
 
+                        <!-- CAMBIO 1: Selector de archivo local conectado a Vercel Blob -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">URLs de Imágenes (Hasta 5 fotos separadas por coma `,`)</label>
-                            <input type="text" id="prodImages" placeholder="https://foto1.jpg, https://foto2.jpg" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
-                            <p class="text-[11px] text-slate-400 mt-1">La primera URL será la imagen de portada. Hasta 5 enlaces.</p>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Fotografía del Producto *</label>
+                            <input type="file" id="prodImageFile" accept="image/*" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                            <input type="hidden" id="prodExistingImages" value="">
+                            <p class="text-[11px] text-slate-400 mt-1">Sube una foto desde tu equipo. Se guardará de forma automática en la nube.</p>
                         </div>
 
                         <div class="flex gap-2 justify-end">
@@ -481,6 +483,7 @@
                                     <th class="p-3 text-right">Acciones</th>
                                 </tr>
                             </thead>
+                            <tbody id="categoriesTableBody" class="divide-y divide-slate-100"></tbody>
                             <tbody id="productsTableBody" class="divide-y divide-slate-100">
                                 <!-- Filas dinámicas -->
                             </tbody>
@@ -549,34 +552,31 @@
 
         // CONTROL DE ACCESO ADMIN POR URL (?rol=admin) O TECLADO
         function checkAdminRoleOrShortcut() {
-    const params = new URLSearchParams(window.location.search);
-    const adminBtn = document.getElementById('adminNavBtn');
+            const params = new URLSearchParams(window.location.search);
+            const adminBtn = document.getElementById('adminNavBtn');
 
-    if (params.get('rol') === 'admin') {
-        // Muestra el panel admin solo si la URL tiene ?rol=admin
-        adminBtn.classList.remove('hidden');
-        adminBtn.classList.add('flex');
-    } else {
-        // Oculta obligatoriamente el panel admin para clientes normales
-        adminBtn.classList.add('hidden');
-        adminBtn.classList.remove('flex');
-    }
-
-    // Atajo de teclado de emergencia (Ctrl + Shift + A)
-    window.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
-            e.preventDefault();
-            const isHidden = adminBtn.classList.contains('hidden');
-            if (isHidden) {
+            if (params.get('rol') === 'admin') {
                 adminBtn.classList.remove('hidden');
                 adminBtn.classList.add('flex');
-                alert("¡Panel de administración desbloqueado temporalmente!");
             } else {
-                toggleAdminModal();
+                adminBtn.classList.add('hidden');
+                adminBtn.classList.remove('flex');
             }
+
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
+                    e.preventDefault();
+                    const isHidden = adminBtn.classList.contains('hidden');
+                    if (isHidden) {
+                        adminBtn.classList.remove('hidden');
+                        adminBtn.classList.add('flex');
+                        alert("¡Panel de administración desbloqueado temporalmente!");
+                    } else {
+                        toggleAdminModal();
+                    }
+                }
+            });
         }
-    });
-}
 
         function saveDataLocal() {
             localStorage.setItem('mt_config', JSON.stringify(config));
@@ -997,7 +997,8 @@
             document.getElementById('prodPrice').value = '';
             document.getElementById('prodPromoPrice').value = '';
             document.getElementById('prodDesc').value = '';
-            document.getElementById('prodImages').value = '';
+            document.getElementById('prodImageFile').value = '';
+            document.getElementById('prodExistingImages').value = '';
             
             const catSelect = document.getElementById('prodCategory');
             catSelect.innerHTML = categories.filter(c => c !== 'Todas').map(c => `<option value="${c}">${c}</option>`).join('');
@@ -1007,6 +1008,7 @@
             document.getElementById('productForm').classList.add('hidden');
         }
 
+        // CAMBIO 2: Función editProduct ajustada para rellenar la imagen existente
         function editProduct(id) {
             const p = products.find(item => item.id === id);
             if (!p) return;
@@ -1017,11 +1019,11 @@
             document.getElementById('prodPromoPrice').value = p.precioOferta || '';
             document.getElementById('prodStatus').value = p.estado;
             document.getElementById('prodDesc').value = p.descripcion;
-            document.getElementById('prodImages').value = p.imagenes ? p.imagenes.slice(0, 5).join(', ') : '';
+            document.getElementById('prodExistingImages').value = p.imagenes && p.imagenes[0] ? p.imagenes[0] : '';
             document.getElementById('prodCategory').value = p.categoria;
         }
 
-        // GUARDAR PRODUCTO EN LA NUBE (PETICIÓN POST A LA API)
+        // CAMBIO 3: Función saveProduct actualizada para subir a Vercel Blob automáticamente
         async function saveProduct(e) {
             e.preventDefault();
             const id = document.getElementById('prodEditId').value || Date.now().toString();
@@ -1031,11 +1033,29 @@
             const categoria = document.getElementById('prodCategory').value;
             const estado = document.getElementById('prodStatus').value;
             const descripcion = document.getElementById('prodDesc').value;
-            const rawImages = document.getElementById('prodImages').value;
             
-            const imagenes = rawImages 
-                ? rawImages.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5) 
-                : ['https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=600'];
+            let imagenes = [document.getElementById('prodExistingImages').value || 'https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=600'];
+
+            const fileInput = document.getElementById('prodImageFile');
+            if (fileInput.files && fileInput.files[0]) {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                try {
+                    const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.url) {
+                        imagenes = [uploadData.url];
+                    }
+                } catch (err) {
+                    console.error("Error al subir la imagen:", err);
+                    alert("Hubo un error al subir la fotografía.");
+                    return;
+                }
+            }
 
             const productoObj = { id, nombre, precio, precioOferta, categoria, estado, descripcion, imagenes };
 
@@ -1061,12 +1081,9 @@
         async function deleteProductCloud(id) {
             if(!confirm("¿Estás seguro de eliminar este producto?")) return;
             
-            // Filtramos localmente y actualizamos mandando la nueva lista a la API
             products = products.filter(p => p.id !== id);
             
             try {
-                // Sobrescribimos enviando todos los productos restantes mediante POST
-                // (O puedes agregar un método DELETE en tu api/productos.js si lo deseas)
                 const response = await fetch('/api/productos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
