@@ -21,6 +21,9 @@ export default async function handler(req, res) {
       token: process.env.PUBLIC_BLOB_STORE_ID_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
     });
 
+    console.log("URL generada por Vercel Blob:", blob.url);
+
+    // Retornamos la URL exacta para que el frontend la guarde en Upstash KV
     return res.status(200).json({ url: blob.url });
   } catch (error) {
     console.error("Error al subir blob:", error);
