@@ -5,9 +5,17 @@ const kv = createClient({
   token: process.env.KV_REST_API_TOKEN,
 });
 
-export default async function handler(request) {
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
-    if (request.method === 'GET') {
+    if (req.method === 'GET') {
       let productos = await kv.get('listado_productos');
       
       if (!productos || productos.length === 0) {
@@ -46,24 +54,19 @@ export default async function handler(request) {
         await kv.set('listado_productos', productos);
       }
       
-      return new Response(JSON.stringify(productos), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(200).json(productos);
     }
 
-    if (request.method === 'POST') {
-      const body = await request.json();
+    if (req.method === 'POST') {
+      const body = req.body;
       let productosActuales = await kv.get('listado_productos') || [];
 
-      // Manejo de eliminación
       if (body.action === 'delete') {
         productosActuales = productosActuales.filter(p => p.id !== body.id);
         await kv.set('listado_productos', productosActuales);
-        return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return res.status(200).json({ success: true });
       }
 
-      // Guardar o actualizar producto por ID
       const index = productosActuales.findIndex(p => p.id === body.id);
       if (index >= 0) {
         productosActuales[index] = body;
@@ -72,15 +75,12 @@ export default async function handler(request) {
       }
 
       await kv.set('listado_productos', productosActuales);
-
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(200).json({ success: true });
     }
 
-    return new Response('Método no permitido', { status: 405 });
+    return res.status(405).json({ error: 'Método no permitido' });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    console.error("Error en productos:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
