@@ -16,14 +16,15 @@ export default async function handler(req, res) {
   try {
     const filename = req.query.filename || `producto-${Date.now()}.jpg`;
 
+    // Subimos la imagen especificando el token y el storeId explícito de tu store público
     const blob = await put(filename, req, {
       access: 'public',
-      token: process.env.PUBLIC_BLOB_STORE_ID_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
+      token: process.env.PUBLIC_BLOB_STORE_ID_READ_WRITE_TOKEN,
+      storeId: process.env.PUBLIC_BLOB_STORE_ID_STORE_ID,
     });
 
-    console.log("URL generada por Vercel Blob:", blob.url);
+    console.log("URL pública generada:", blob.url);
 
-    // Retornamos la URL exacta para que el frontend la guarde en Upstash KV
     return res.status(200).json({ url: blob.url });
   } catch (error) {
     console.error("Error al subir blob:", error);
