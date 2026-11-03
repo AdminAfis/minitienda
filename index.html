@@ -1019,7 +1019,7 @@
             document.getElementById('prodCategory').value = p.categoria;
         }
 
-        async function saveProduct(e) {
+       async function saveProduct(e) {
             e.preventDefault();
             const saveBtn = e.target.querySelector('button[type="submit"]');
             const originalText = saveBtn.textContent;
@@ -1046,12 +1046,10 @@
                     const filesToUpload = Array.from(fileInput.files).slice(0, 5);
                     
                     for (const file of filesToUpload) {
-                        const formData = new FormData();
-                        formData.append('file', file);
-
-                        const uploadRes = await fetch('/api/upload', {
+                        // Enviamos el archivo directamente como body e incluimos el nombre en los parámetros de la URL
+                        const uploadRes = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
                             method: 'POST',
-                            body: formData
+                            body: file
                         });
                         
                         if (!uploadRes.ok) {
@@ -1063,6 +1061,40 @@
                             imagenes.push(uploadData.url);
                         }
                     }
+                }
+
+                if (imagenes.length === 0) {
+                    imagenes = ['https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=600'];
+                }
+
+                saveBtn.textContent = "Guardando producto...";
+                const productoObj = { id, nombre, precio, precioOferta, categoria, estado, descripcion, imagenes };
+
+                const response = await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productoObj)
+                });
+
+                if (!response.ok) {
+                    throw new Error("Error al guardar el producto en la base de datos.");
+                }
+
+                const res = await response.json();
+                if(res.success) {
+                    closeProductForm();
+                    await cargarProductosDesdeNube();
+                    renderAdminProducts();
+                    alert("¡Producto guardado correctamente en la nube!");
+                }
+            } catch (err) {
+                console.error("Error en el proceso:", err);
+                alert("Hubo un error: " + err.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
+        }
                 }
 
                 if (imagenes.length === 0) {
