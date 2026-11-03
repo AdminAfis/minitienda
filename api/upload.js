@@ -1,8 +1,15 @@
 import { put } from '@vercel/blob';
 
+export const config = {
+  runtime: 'edge',
+};
+
 export default async function handler(request) {
   if (request.method !== 'POST') {
-    return new Response('Método no permitido', { status: 405 });
+    return new Response(JSON.stringify({ error: 'Método no permitido' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -10,7 +17,10 @@ export default async function handler(request) {
     const file = formData.get('file');
 
     if (!file) {
-      return new Response(JSON.stringify({ error: 'No se encontró ningún archivo' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'No se encontró ningún archivo' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const nombreUnico = `productos/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
@@ -25,6 +35,10 @@ export default async function handler(request) {
     });
     
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    console.error("Error en upload:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
