@@ -17,7 +17,8 @@ export default async function handler(req, res) {
     const filename = req.query.filename || `producto-${Date.now()}.jpg`;
 
     const blob = await put(filename, req, {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+      access: 'public',
+      token: process.env.PUBLIC_BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN,
     });
 
     return res.status(200).json({ url: blob.url });
