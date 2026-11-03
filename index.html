@@ -456,12 +456,12 @@
                             <textarea id="prodDesc" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"></textarea>
                         </div>
 
-                        <!-- CAMBIO 1: Selector de archivo local conectado a Vercel Blob -->
+                        <!-- Selector Múltiple conectado a Vercel Blob -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Fotografía del Producto *</label>
-                            <input type="file" id="prodImageFile" accept="image/*" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Fotografías del Producto (Hasta 5 imágenes) *</label>
+                            <input type="file" id="prodImageFiles" accept="image/*" multiple class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                             <input type="hidden" id="prodExistingImages" value="">
-                            <p class="text-[11px] text-slate-400 mt-1">Sube una foto desde tu equipo. Se guardará de forma automática en la nube.</p>
+                            <p class="text-[11px] text-slate-400 mt-1">Puedes seleccionar varias fotos a la vez desde tu equipo. La primera será la portada.</p>
                         </div>
 
                         <div class="flex gap-2 justify-end">
@@ -515,7 +515,7 @@
 
         let config = JSON.parse(localStorage.getItem('mt_config')) || DEFAULT_CONFIG;
         let categories = JSON.parse(localStorage.getItem('mt_categories')) || DEFAULT_CATEGORIES;
-        let products = []; // Se cargará dinámicamente desde la nube
+        let products = [];
         let cart = JSON.parse(localStorage.getItem('mt_cart')) || [];
         let selectedCategory = 'Todas';
 
@@ -526,14 +526,12 @@
             renderCategoryFilters();
             checkAdminRoleOrShortcut();
             
-            // Cargar productos desde la base de datos en la nube (Vercel KV)
             await cargarProductosDesdeNube();
             
             renderCartUI();
             lucide.createIcons();
         });
 
-        // CARGAR PRODUCTOS DESDE LA API DE VERCEL
         async function cargarProductosDesdeNube() {
             try {
                 const response = await fetch('/api/productos');
@@ -550,7 +548,6 @@
             }
         }
 
-        // CONTROL DE ACCESO ADMIN POR URL (?rol=admin) O TECLADO
         function checkAdminRoleOrShortcut() {
             const params = new URLSearchParams(window.location.search);
             const adminBtn = document.getElementById('adminNavBtn');
@@ -997,7 +994,7 @@
             document.getElementById('prodPrice').value = '';
             document.getElementById('prodPromoPrice').value = '';
             document.getElementById('prodDesc').value = '';
-            document.getElementById('prodImageFile').value = '';
+            document.getElementById('prodImageFiles').value = '';
             document.getElementById('prodExistingImages').value = '';
             
             const catSelect = document.getElementById('prodCategory');
@@ -1008,7 +1005,6 @@
             document.getElementById('productForm').classList.add('hidden');
         }
 
-        // CAMBIO 2: Función editProduct ajustada para rellenar la imagen existente
         function editProduct(id) {
             const p = products.find(item => item.id === id);
             if (!p) return;
@@ -1019,52 +1015,73 @@
             document.getElementById('prodPromoPrice').value = p.precioOferta || '';
             document.getElementById('prodStatus').value = p.estado;
             document.getElementById('prodDesc').value = p.descripcion;
-            document.getElementById('prodExistingImages').value = p.imagenes && p.imagenes[0] ? p.imagenes[0] : '';
+            document.getElementById('prodExistingImages').value = p.imagenes ? p.imagenes.join(', ') : '';
             document.getElementById('prodCategory').value = p.categoria;
         }
 
-        // CAMBIO 3: Función saveProduct actualizada para subir a Vercel Blob automáticamente
         async function saveProduct(e) {
             e.preventDefault();
-            const id = document.getElementById('prodEditId').value || Date.now().toString();
-            const nombre = document.getElementById('prodName').value;
-            const precio = parseFloat(document.getElementById('prodPrice').value);
-            const precioOferta = parseFloat(document.getElementById('prodPromoPrice').value) || 0;
-            const categoria = document.getElementById('prodCategory').value;
-            const estado = document.getElementById('prodStatus').value;
-            const descripcion = document.getElementById('prodDesc').value;
-            
-            let imagenes = [document.getElementById('prodExistingImages').value || 'https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=600'];
-
-            const fileInput = document.getElementById('prodImageFile');
-            if (fileInput.files && fileInput.files[0]) {
-                const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
-
-                try {
-                    const uploadRes = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const uploadData = await uploadRes.json();
-                    if (uploadData.url) {
-                        imagenes = [uploadData.url];
-                    }
-                } catch (err) {
-                    console.error("Error al subir la imagen:", err);
-                    alert("Hubo un error al subir la fotografía.");
-                    return;
-                }
-            }
-
-            const productoObj = { id, nombre, precio, precioOferta, categoria, estado, descripcion, imagenes };
+            const saveBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Subiendo imágenes...";
 
             try {
+                const id = document.getElementById('prodEditId').value || Date.now().toString();
+                const nombre = document.getElementById('prodName').value;
+                const precio = parseFloat(document.getElementById('prodPrice').value);
+                const precioOferta = parseFloat(document.getElementById('prodPromoPrice').value) || 0;
+                const categoria = document.getElementById('prodCategory').value;
+                const estado = document.getElementById('prodStatus').value;
+                const descripcion = document.getElementById('prodDesc').value;
+                
+                let imagenes = [];
+                const existingImagesStr = document.getElementById('prodExistingImages').value;
+                if (existingImagesStr) {
+                    imagenes = existingImagesStr.split(',').map(s => s.trim()).filter(Boolean);
+                }
+
+                const fileInput = document.getElementById('prodImageFiles');
+                if (fileInput.files && fileInput.files.length > 0) {
+                    const filesToUpload = Array.from(fileInput.files).slice(0, 5);
+                    
+                    for (const file of filesToUpload) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        const uploadRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!uploadRes.ok) {
+                            throw new Error("Fallo al subir una de las imágenes al servidor.");
+                        }
+
+                        const uploadData = await uploadRes.json();
+                        if (uploadData.url) {
+                            imagenes.push(uploadData.url);
+                        }
+                    }
+                }
+
+                if (imagenes.length === 0) {
+                    imagenes = ['https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=600'];
+                }
+
+                saveBtn.textContent = "Guardando producto...";
+                const productoObj = { id, nombre, precio, precioOferta, categoria, estado, descripcion, imagenes };
+
                 const response = await fetch('/api/productos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(productoObj)
                 });
+
+                if (!response.ok) {
+                    throw new Error("Error al guardar el producto en la base de datos.");
+                }
+
                 const res = await response.json();
                 if(res.success) {
                     closeProductForm();
@@ -1073,15 +1090,16 @@
                     alert("¡Producto guardado correctamente en la nube!");
                 }
             } catch (err) {
-                console.error("Error al guardar producto:", err);
-                alert("Hubo un error al guardar el producto.");
+                console.error("Error en el proceso:", err);
+                alert("Hubo un error: " + err.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
             }
         }
 
         async function deleteProductCloud(id) {
             if(!confirm("¿Estás seguro de eliminar este producto?")) return;
-            
-            products = products.filter(p => p.id !== id);
             
             try {
                 const response = await fetch('/api/productos', {
