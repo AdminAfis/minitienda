@@ -16,10 +16,7 @@ export default async function handler(req, res) {
   try {
     const filename = req.query.filename || `producto-${Date.now()}.jpg`;
 
-    // Como tu Blob Store en Vercel es Privado (según la imagen 2), 
-    // debemos indicarlo aquí para que coincida con los permisos del Storage.
     const blob = await put(filename, req, {
-      access: 'private', 
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
