@@ -697,8 +697,8 @@
             badge.className = `inline-block text-xs font-medium px-2 py-1 rounded ${isOutOfStock ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`;
 
             const mainImg = document.getElementById('modalMainImg');
-            const rawImages = p.imagenes && p.imagenes.length > 0 ? p.imagenes : ['https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen'];
-            const images = rawImages.slice(0, 5);
+            const validImages = rawImages.filter(img => img && typeof img === 'string' && img.trim().startsWith('http'));
+            const images = validImages.length > 0 ? validImages.slice(0, 5) : ['https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen'];
 
             mainImg.src = images[0];
 
