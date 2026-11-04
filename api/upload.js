@@ -16,13 +16,14 @@ export default async function handler(req, res) {
   try {
     const filename = req.query.filename || `producto-${Date.now()}.jpg`;
 
+    // req actúa como stream binario directo de la imagen
     const blob = await put(filename, req, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN || process.env.PUBLIC_BLOB_STORE_ID_READ_WRITE_TOKEN,
     });
 
     return res.status(200).json({ url: blob.url });
-  } catch (error) {
+  } catch (error)  {
     console.error("Error al subir blob:", error);
     return res.status(500).json({ error: error.message });
   }
