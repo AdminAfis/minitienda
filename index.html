@@ -1051,12 +1051,10 @@
                     const filesToUpload = Array.from(fileInput.files).slice(0, 5);
                     
                     for (const file of filesToUpload) {
-                        const formData = new FormData();
-                        formData.append('file', file);
-
-                        const uploadRes = await fetch('/api/upload', {
+                        // Enviar el archivo como binario puro pasando el nombre por query string
+                        const uploadRes = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
                             method: 'POST',
-                            body: formData
+                            body: file 
                         });
                         
                         if (!uploadRes.ok) {
