@@ -639,7 +639,9 @@
                 const isPromo = p.precioOferta && p.precioOferta > 0;
                 const finalPrice = isPromo ? p.precioOferta : p.precio;
                 const isOutOfStock = p.estado === 'Agotado';
-                const mainImg = p.imagenes && p.imagenes.length > 0 && p.imagenes[0] && p.imagenes[0].trim().startsWith('http')? p.imagenes[0]: 'https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen';
+                const mainImg = p.imagenes && p.imagenes.length > 0 && p.imagenes[0] && typeof p.imagenes[0] === 'string' && p.imagenes[0].trim().startsWith('http') 
+                    ? p.imagenes[0] 
+                    : 'https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen';
 
                 return `
                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden relative group">
@@ -697,6 +699,9 @@
             badge.className = `inline-block text-xs font-medium px-2 py-1 rounded ${isOutOfStock ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`;
 
             const mainImg = document.getElementById('modalMainImg');
+            
+            // CORRECCIÓN CLAVE AQUÍ: Declaración correcta de rawImages y validación estricta
+            const rawImages = p.imagenes && p.imagenes.length > 0 ? p.imagenes : [];
             const validImages = rawImages.filter(img => img && typeof img === 'string' && img.trim().startsWith('http'));
             const images = validImages.length > 0 ? validImages.slice(0, 5) : ['https://placehold.co/400x400/e2e8f0/64748b?text=Sin+Imagen'];
 
