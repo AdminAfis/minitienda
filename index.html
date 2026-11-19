@@ -495,7 +495,7 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT APPLICATION LOGIC CONECTADO A LA NUBE -->
+    <!-- JAVASCRIPT APPLICATION LOGIC CONECTADO A LA NUBE EN TIEMPO REAL -->
     <script>
         const DEFAULT_CONFIG = {
             storeName: 'MiTienda Digital',
@@ -519,9 +519,13 @@
         let cart = JSON.parse(localStorage.getItem('mt_cart')) || [];
         let selectedCategory = 'Todas';
 
-        // INICIALIZACIÓN APP
+        // INICIALIZACIÓN APP SINCRONIZADA CON LA NUBE
         window.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('yearSpan').textContent = new Date().getFullYear();
+            
+            // Cargar configuración, categorías y productos desde la nube en tiempo real
+            await cargarDatosGlobalesDesdeNube();
+
             updateStoreInfoUI();
             renderCategoryFilters();
             checkAdminRoleOrShortcut();
@@ -532,12 +536,31 @@
             lucide.createIcons();
         });
 
+        async function cargarDatosGlobalesDesdeNube() {
+            try {
+                const response = await fetch('/api/productos');
+                const data = await response.json();
+                if (data) {
+                    if (data.config && typeof data.config === 'object') {
+                        config = { ...DEFAULT_CONFIG, ...data.config };
+                    }
+                    if (Array.isArray(data.categories) && data.categories.length > 0) {
+                        categories = data.categories;
+                    }
+                }
+            } catch (error) {
+                console.error("Error al cargar datos globales de la nube:", error);
+            }
+        }
+
         async function cargarProductosDesdeNube() {
             try {
                 const response = await fetch('/api/productos');
                 const data = await response.json();
-                if (Array.isArray(data)) {
-                    products = data;
+                // Soporta tanto si devuelve solo el array de productos como si devuelve un objeto global
+                const prodsArray = Array.isArray(data) ? data : (data.products || []);
+                if (Array.isArray(prodsArray)) {
+                    products = prodsArray;
                     renderStoreProducts();
                     if(!document.getElementById('adminModal').classList.contains('hidden')) {
                         renderAdminProducts();
@@ -919,7 +942,8 @@
             document.getElementById('cfgTt').value = config.tiktok || '';
         }
 
-        function saveCompanySettings(e) {
+        // SINCRONIZACIÓN EN TIEMPO REAL CON LA NUBE PARA CONFIGURACIÓN
+        async function saveCompanySettings(e) {
             e.preventDefault();
             config = {
                 storeName: document.getElementById('cfgStoreName').value,
@@ -934,9 +958,11 @@
                 facebook: document.getElementById('cfgFb').value,
                 tiktok: document.getElementById('cfgTt').value,
             };
+
+            await syncGlobalDataToCloud();
             saveDataLocal();
             updateStoreInfoUI();
-            alert('Configuración guardada exitosamente.');
+            alert('¡Configuración guardada y sincronizada en tiempo real!');
         }
 
         function renderAdminCategories() {
@@ -951,11 +977,13 @@
             `).join('');
         }
 
-        function saveCategory(e) {
+        // SINCRONIZACIÓN EN TIEMPO REAL CON LA NUBE PARA CATEGORÍAS
+        async function saveCategory(e) {
             e.preventDefault();
             const val = document.getElementById('catNameInput').value.trim();
             if (val && !categories.includes(val)) {
                 categories.push(val);
+                await syncGlobalDataToCloud();
                 saveDataLocal();
                 renderCategoryFilters();
                 renderAdminCategories();
@@ -963,11 +991,24 @@
             }
         }
 
-        function deleteCategory(catName) {
+        async function deleteCategory(catName) {
             categories = categories.filter(c => c !== catName);
+            await syncGlobalDataToCloud();
             saveDataLocal();
             renderCategoryFilters();
             renderAdminCategories();
+        }
+
+        async function syncGlobalDataToCloud() {
+            try {
+                await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'saveGlobalData', config, categories })
+                });
+            } catch (err) {
+                console.error("Error al sincronizar con la nube:", err);
+            }
         }
 
         function renderAdminProducts() {
@@ -1050,7 +1091,6 @@
                     const filesToUpload = Array.from(fileInput.files).slice(0, 5);
                     
                     for (const file of filesToUpload) {
-                        // Compresión y redimensionamiento automático en el cliente antes de subir (Ancho máx 1000px, 85% calidad)
                         const compressedFile = await new Promise((resolve) => {
                             const reader = new FileReader();
                             reader.readAsDataURL(file);
